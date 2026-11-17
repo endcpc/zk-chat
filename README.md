@@ -155,3 +155,7 @@ separate rooms stay separate; sender keys rotate on leave; 1 MB room and DM file
 transfers pass integrity checks; tampered frames are rejected and replays dropped; relay
 code never uses storage or logs. In the browser test there are no CSP violations or page
 errors.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

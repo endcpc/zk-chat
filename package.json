@@ -1,0 +1,21 @@
+{
+  "name": "zk-chat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Zero-knowledge end-to-end encrypted chat on Cloudflare Workers + Durable Objects",
+  "scripts": {
+    "dev": "vite",
+    "dev:worker": "vite build && wrangler dev",
+    "build": "vite build",
+    "deploy": "vite build && wrangler deploy",
+    "test": "node --test test/unit/*.test.js",
+    "test:e2e": "bash test/run-e2e.sh",
+    "test:all": "npm test && bash test/run-e2e.sh"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1",
+    "vite": "^8.3.8",
+    "wrangler": "^4.163.0"
+  }
+}

@@ -139,8 +139,26 @@ test('two browsers chat, DM, share an image; wrong password is isolated; zh-TW U
   await alice.waitForSelector('.notice >> text=This private chat is closed');
   assert.equal(await alice.isDisabled('.composer textarea'), true);
 
-  // join screen screenshot (Traditional Chinese)
+  // join screen screenshot (Traditional Chinese, labelled 正體中文)
+  assert.equal(await bob.locator('.prefs select >> nth=1 >> option:checked').textContent(), '正體中文');
   await bob.screenshot({ path: SHOTS + 'join-zh-TW.png' });
+
+  // every language is selectable; Arabic flips the layout right-to-left
+  const codes = await alice.$$eval('.prefs select >> nth=1 >> option', (os) => os.map((o) => o.value));
+  assert.ok(codes.length >= 15, 'at least 15 languages');
+  for (const code of codes) {
+    await alice.selectOption('.prefs select >> nth=1', code);
+    assert.equal(await alice.getAttribute('html', 'dir'), code === 'ar' ? 'rtl' : 'ltr');
+  }
+  await alice.click('.tab >> text=الغرفة');
+  // notices and download buttons already on screen re-translate too
+  await alice.waitForSelector('.notice >> text=غادر Bob');
+  assert.equal(await alice.locator('.notice', { hasText: 'Bob left' }).count(), 0);
+  assert.equal(await alice.locator('.msg a.btn', { hasText: 'Download' }).count(), 0);
+  assert.ok((await alice.locator('.msg a.btn', { hasText: 'تنزيل' }).count()) > 0);
+  await alice.screenshot({ path: SHOTS + 'alice-room-ar-rtl.png' });
+  await alice.selectOption('.prefs select >> nth=1', 'ko');
+  await alice.waitForSelector('.composer textarea[placeholder="암호화된 메시지 입력…"]');
 
   const csp = problems.filter((p) => /Content Security Policy|Refused/.test(p));
   assert.deepEqual(csp, [], 'no CSP violations');

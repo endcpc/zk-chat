@@ -4,16 +4,19 @@ const KEY = 'zk.lang';
 let current = 'en';
 const listeners = new Set();
 
-/** Any Chinese browser locale (zh, zh-CN, zh-Hans, zh-HK…) maps to Traditional Chinese. */
+/** Any Chinese browser locale (zh, zh-CN, zh-Hans, zh-HK…) maps to Traditional Chinese (正體中文). */
 export function detectLanguage(langs = globalThis.navigator?.languages ?? []) {
   for (const raw of langs) {
     const l = String(raw).toLowerCase();
     if (l.startsWith('zh')) return 'zh-TW';
-    if (l.startsWith('ja')) return 'ja';
-    if (l.startsWith('en')) return 'en';
+    if (l.startsWith('pt')) return 'pt-BR';
+    const base = l.split('-')[0];
+    if (LOCALES[base]) return base;
   }
   return 'en';
 }
+
+const HTML_LANG = { 'zh-TW': 'zh-Hant-TW' };
 
 export function initLanguage() {
   let saved = null;
@@ -26,7 +29,8 @@ export function initLanguage() {
 export function setLanguage(lang, persist = true) {
   if (!LOCALES[lang]) lang = 'en';
   current = lang;
-  document.documentElement.lang = lang === 'zh-TW' ? 'zh-Hant-TW' : lang;
+  document.documentElement.lang = HTML_LANG[lang] ?? lang;
+  document.documentElement.dir = LOCALES[lang]._dir ?? 'ltr';
   if (persist) {
     try {
       localStorage.setItem(KEY, lang); // UI preference only; never keys or messages

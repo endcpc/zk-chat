@@ -196,7 +196,7 @@ textarea,
 .join-prefs {
   position: absolute;
   top: 1rem;
-  right: 1rem;
+  inset-inline-end: 1rem;
 }
 .prefs {
   display: flex;
@@ -258,13 +258,14 @@ textarea,
   font-size: 0.82rem;
 }
 .layers li {
-  padding: 0.15rem 0 0.15rem 1.3rem;
+  padding-block: 0.15rem;
+  padding-inline: 1.3rem 0;
   position: relative;
 }
 .layers li::before {
   content: '';
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 0.55em;
   width: 0.55rem;
   height: 0.55rem;
@@ -320,7 +321,7 @@ textarea,
 }
 .sidebar {
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   padding: 1rem;
   overflow-y: auto;
   display: flex;
@@ -357,7 +358,7 @@ textarea,
   padding: 0.4rem;
   border-radius: 10px;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
 }
 .member-btn:hover {
   background: var(--surface-2);
@@ -510,7 +511,7 @@ textarea,
   margin: 0.1rem 0 0;
 }
 .safety-box {
-  margin-left: auto;
+  margin-inline-start: auto;
   max-width: 22rem;
 }
 .safety-box summary {
@@ -684,7 +685,7 @@ progress {
     grid-template-rows: auto 1fr;
   }
   .sidebar {
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--border);
     max-height: 30vh;
   }

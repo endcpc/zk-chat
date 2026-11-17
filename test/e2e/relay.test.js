@@ -40,8 +40,9 @@ async function join(roomName, password, nickname) {
   return s;
 }
 
-function waitFor(s, ev, pred = () => true, ms = 8000) {
-  const hit = s.events.find((e) => e.ev === ev && pred(e.d));
+/** Resolve on an event already seen (from index `since` on) or the next one that matches. */
+function waitFor(s, ev, pred = () => true, ms = 8000, since = 0) {
+  const hit = s.events.slice(since).find((e) => e.ev === ev && pred(e.d));
   if (hit) return Promise.resolve(hit.d);
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => {
@@ -221,10 +222,11 @@ test('sender keys rotate on every leave', async () => {
   }
   const bHadKeys = [...b.members.get(a.id).senderKeys.keys()];
   assert.ok(bHadKeys.includes(kidBefore));
+  const mark = a.events.length; // only rotations caused by B's departure count
   b.close();
   open.delete(b);
-  await waitFor(a, 'leave', (d) => d.id === b.id);
-  await waitFor(a, 'rotated', (d) => d.kid !== kidBefore);
+  await waitFor(a, 'leave', (d) => d.id === b.id, 8000, mark);
+  await waitFor(a, 'rotated', (d) => d.kid !== kidBefore, 8000, mark);
   assert.notEqual(a.mySend.kid, kidBefore);
   assert.ok(!bHadKeys.includes(a.mySend.kid), 'departed member never had the new key');
   await a.sendText('post-leave');

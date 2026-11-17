@@ -9,8 +9,9 @@ everything in memory, and never touches storage.
 * Backend: Cloudflare Workers + Durable Objects (one DO per room, memory only)
 * Transport: WebSocket (wss://)
 * UI: room chat, private chat by clicking an avatar, images and files (up to 25 MB),
-  5 themes (Auto, Light, Dark, Midnight, High contrast), English / 繁體中文 / 日本語
-  (any Chinese browser locale opens in Traditional Chinese; there is no Simplified build)
+  5 themes (Auto, Light, Dark, Midnight, High contrast), 15 languages: English, 正體中文, 日本語, 한국어, Español, Français, Deutsch, Italiano,
+  Português (Brasil), Русский, Türkçe, Tiếng Việt, ไทย, Bahasa Indonesia, العربية (right-to-left)
+  (any Chinese browser locale opens in 正體中文; there is no Simplified build)
 
 ## Quick start
 
@@ -124,7 +125,8 @@ client/
     crypto/primitives.js   ECDH, PBKDF2, HKDF, AES-GCM, ECDSA, padding, safety numbers
     core/emitter.js
     core/session.js        the whole protocol (DOM-free; also runs in Node for tests)
-    i18n/locales.js        en, zh-TW (Traditional), ja
+    i18n/locales.js        en, zh-TW (正體中文), ja
+    i18n/locales-more.js   ko, es, fr, de, it, pt-BR, ru, tr, vi, th, id, ar
     i18n/index.js
     ui/app.js              join screen, members, tabs, DMs, files, drag-drop, paste
     ui/dom.js  ui/identicon.js  ui/theme.js
@@ -133,8 +135,9 @@ worker/src/
   room.js                  RoomDO blind relay (memory only)
 test/
   unit/crypto.test.js      11 crypto tests
+  unit/i18n.test.js        3 tests: every language complete, 正體中文 only, locale detection
   e2e/relay.test.js        12 tests: real clients through wrangler dev (workerd)
-  browser/ui.test.js       headless Chromium: 3 users, chat, DM, image, file, zh-TW, themes
+  browser/ui.test.js       headless Chromium: 3 users, chat, DM, image, file, zh-TW, themes, all 15 languages, RTL
   run-e2e.sh
 wrangler.jsonc  vite.config.js  package.json
 ```

@@ -28,6 +28,9 @@ export function mountApp(root) {
   return app;
 }
 
+/** Keep only the fields that are set. */
+const pick = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => v));
+
 class App {
   constructor(root) {
     this.root = root;
@@ -78,6 +81,8 @@ class App {
     if (!this.session) return;
     this.renderMembers();
     for (const c of this.convs.values()) c.refresh();
+    document.querySelectorAll('.notice').forEach((el) => el._render && (el.textContent = el._render()));
+    document.querySelectorAll('.msg .meta .name[data-from]').forEach((el) => (el.textContent = this.nameOf(el.dataset.from)));
     this.updateComposer();
   }
 
@@ -263,8 +268,8 @@ class App {
     applyI18n(this.root);
 
     const room = this.ensureConv('room');
-    this.notice(room, t('noHistory'));
-    if (session.members.size === 0) this.notice(room, t('onlyYou'));
+    this.notice(room, () => t('noHistory'));
+    if (session.members.size === 0) this.notice(room, () => t('onlyYou'));
     this.select('room');
     this.renderMembers();
     this.updateComposer();
@@ -312,32 +317,33 @@ class App {
       if (timer === undefined) return;
       clearTimeout(timer);
       this.pendingJoins.delete(id);
-      if (s.members.has(id)) this.notice(this.convs.get('room'), t('joined', { name: this.displayName(id) }));
+      if (s.members.has(id)) this.notice(this.convs.get('room'), () => t('joined', { name: this.nameOf(id) }));
     };
     this.offs.push(() => this.pendingJoins.forEach((timer) => clearTimeout(timer)));
     on('join', (m) => {
-      this.names.set(m.id, this.displayName(m.id));
+      this.names.set(m.id, this.snapshot(m));
       this.pendingJoins.set(m.id, setTimeout(() => announceJoin(m.id), 2000));
       this.renderMembers();
     });
     on('member-update', (m) => {
-      this.names.set(m.id, this.displayName(m.id));
+      this.names.set(m.id, this.snapshot(m));
       if (m.status !== 'pending') announceJoin(m.id);
       this.renderMembers();
       for (const c of this.convs.values()) c.refresh();
       if (m.status === 'mismatch' && !this.mismatchNotified.has(m.id)) {
         this.mismatchNotified.add(m.id);
-        this.notice(this.convs.get('room'), t('mismatchNotice', { name: this.displayName(m.id) }), 'warn');
+        this.notice(this.convs.get('room'), () => t('mismatchNotice', { name: this.nameOf(m.id) }), 'warn');
       }
     });
     on('leave', (m) => {
       announceJoin(m.id);
-      const name = this.names.get(m.id) ?? this.displayName(m.id, m);
-      this.notice(this.convs.get('room'), t('left', { name }));
+      this.names.set(m.id, { ...this.snapshot(m), ...pick(this.names.get(m.id)) });
+      const name = () => this.nameOf(m.id);
+      this.notice(this.convs.get('room'), () => t('left', { name: name() }));
       const dm = this.convs.get(m.id);
       if (dm) {
         dm.closed = true;
-        this.notice(dm, t('peerGone', { name }), 'warn');
+        this.notice(dm, () => t('peerGone', { name: name() }), 'warn');
         dm.refresh();
         this.updateComposer();
       }
@@ -359,6 +365,16 @@ class App {
       this.input.disabled = true;
       this.sendBtn.disabled = true;
     });
+  }
+
+  /** Who a member was, kept after they leave so their name can still be rendered (and re-translated). */
+  snapshot(m) {
+    const fp = m?.fp ? Array.from(m.fp.slice(0, 2), (b) => b.toString(16).padStart(2, '0')).join('') : '';
+    return { nick: m?.nick, fingerprint: fp };
+  }
+
+  nameOf(id) {
+    return this.displayName(id, this.names.get(id));
   }
 
   displayName(id, fallback) {
@@ -434,7 +450,7 @@ class App {
     const tabLabel = h('span', { class: 'tab-label' });
     const badge = h('span', { class: 'unread', hidden: true });
     const tab = h('button', { type: 'button', class: 'tab', role: 'tab', onclick: () => this.select(key) }, tabLabel, badge);
-    const conv = { key, isDm, list, pane, tab, tabLabel, badge, unread: 0, closed: false, peerName: '' };
+    const conv = { key, isDm, list, pane, tab, tabLabel, badge, unread: 0, closed: false };
 
     if (isDm) {
       const title = h('h3');
@@ -455,8 +471,7 @@ class App {
         }, '×'),
       );
       conv.refresh = () => {
-        const name = conv.closed ? conv.peerName : this.displayName(key);
-        conv.peerName = name;
+        const name = this.nameOf(key);
         title.textContent = t('privateWith', { name });
         note.textContent = t('privateNote', { name });
         summary.textContent = t('safetyNumber');
@@ -528,7 +543,7 @@ class App {
       'div',
       { class: 'msg' + (self ? ' self' : '') },
       h('span', { class: 'avatar' }, identicon(this.fpOf(from), 30)),
-      h('div', { class: 'bubble' }, h('div', { class: 'meta' }, h('span', { class: 'name', text: this.displayName(from) }), h('time', { text: time })), body),
+      h('div', { class: 'bubble' }, h('div', { class: 'meta' }, h('span', { class: 'name', 'data-from': from, text: this.nameOf(from) }), h('time', { text: time })), body),
     );
     conv.list.append(el);
     if (self || nearBottom) conv.list.scrollTop = conv.list.scrollHeight;
@@ -542,9 +557,13 @@ class App {
     return el;
   }
 
-  notice(conv, text, kind = '') {
+  /** `render` is a string or a function returning the text; functions re-run when the language changes. */
+  notice(conv, render, kind = '') {
     if (!conv) return;
-    conv.list.append(h('div', { class: `notice ${kind}`, text }));
+    const fn = typeof render === 'function' ? render : () => render;
+    const el = h('div', { class: `notice ${kind}`, text: fn() });
+    el._render = fn;
+    conv.list.append(el);
     conv.list.scrollTop = conv.list.scrollHeight;
   }
 
@@ -561,7 +580,7 @@ class App {
     try {
       await this.session.sendText(text, { to: key === 'room' ? undefined : key });
     } catch (err) {
-      this.notice(conv, t('notSent', { reason: err?.message ?? err }), 'warn');
+      this.notice(conv, () => t('notSent', { reason: err?.message ?? err }), 'warn');
       if (!this.input.value) this.input.value = text;
     }
   }
@@ -611,7 +630,7 @@ class App {
       return h(
         'figure',
         { class: 'image', dataset: { blob: url } },
-        h('a', { href: url, download: d.name, title: t('download') }, h('img', { src: url, alt: d.name, loading: 'lazy' })),
+        h('a', { href: url, download: d.name, 'data-i18n-title': 'download', title: t('download') }, h('img', { src: url, alt: d.name, loading: 'lazy' })),
         h('figcaption', {}, h('span', { text: d.name }), ' · ', formatBytes(d.size)),
       );
     }
@@ -621,7 +640,7 @@ class App {
       h('span', { class: 'file-icon', 'aria-hidden': 'true' }),
       h('span', { class: 'file-name', text: d.name }),
       h('small', { text: formatBytes(d.size) }),
-      h('a', { class: 'btn ghost', href: url, download: d.name, text: t('download') }),
+      h('a', { class: 'btn ghost', href: url, download: d.name, 'data-i18n': 'download', text: t('download') }),
     );
   }
 

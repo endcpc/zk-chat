@@ -1,4 +1,5 @@
-// UI strings. Chinese ships as Traditional Chinese (zh-TW) only.
+// UI strings. Chinese ships as Traditional Chinese (正體中文, zh-TW) only.
+import { MORE_LOCALES } from './locales-more.js';
 
 export const LOCALES = {
   en: {
@@ -72,7 +73,7 @@ export const LOCALES = {
   },
 
   'zh-TW': {
-    _name: '繁體中文',
+    _name: '正體中文',
     appName: '零知識加密聊天',
     tagline: '端對端加密、匿名、不留紀錄。伺服器只轉送它無法解讀的密文。',
     roomName: '聊天室名稱',
@@ -210,4 +211,5 @@ export const LOCALES = {
     close: '閉じる',
     unread: '未読 {n} 件',
   },
+  ...MORE_LOCALES,
 };
